@@ -4507,3 +4507,513 @@ export default function MealsLayout({ children }) {
 // Final: { openGraph: { title: 'Burger' } }  ← images is GONE
 // Fix: always re-specify all openGraph fields in child pages if root has some
 ```
+
+---
+
+# Section 11: Pages & File-based Routing (Pages Router)
+
+---
+
+## 226. From App Router To Pages Router
+
+**What is this:** A context switch — this section covers the older **Pages Router** (`pages/` directory), not the App Router covered in previous sections.
+
+**Description:** The Pages Router is the original NextJS routing system. It predates the App Router and is still widely used in production codebases. All components are Client Components by default, data fetching uses special exported functions (`getServerSideProps`, `getStaticProps`), and there is no `layout.js` concept — layouts are handled manually. Understanding it is essential for working with legacy NextJS projects.
+
+**Key differences from the App Router:**
+
+| | App Router (`app/`) | Pages Router (`pages/`) |
+|---|---|---|
+| Default rendering | Server Components | Client Components |
+| Data fetching | `async` components + `fetch` | `getServerSideProps` / `getStaticProps` |
+| Layouts | `layout.js` per segment | Manual `_app.js` wrapper |
+| `<head>` | `metadata` export | `next/head` `<Head>` component |
+| Status | Recommended (Next 13+) | Stable, legacy |
+
+---
+
+## 227. Using The Code Snapshots
+
+**What is this:** How to use the provided code snapshots to catch up if you fall behind during the exercises.
+
+**Description:** The instructor provides a folder of snapshots — one per lesson or exercise — so you can always start from a known good state. No new concepts here.
+
+---
+
+## 228. Module Introduction
+
+**What is this:** An overview of what this section covers — Pages Router routing, navigation, dynamic routes, and catch-all routes.
+
+**Description:** This module teaches the Pages Router from scratch: how file paths map to routes, static and dynamic route files, nested routes, catch-all segments, the `<Link>` component, programmatic navigation, and custom 404 pages.
+
+---
+
+## 229. Our Starting Setup
+
+**What is this:** Reviewing the blank Pages Router project that will be built up through the section.
+
+**Description:** The starter is a minimal NextJS project with the `pages/` directory and no routes defined yet. The `pages/_app.js` wrapper is the entry point for all pages — it's where you'd add global styles and persistent layout elements.
+
+**Examples:**
+
+```
+pages/
+├── _app.js     ← wraps all pages (equivalent to root layout.js in App Router)
+└── index.js    ← homepage → /
+```
+
+```jsx
+// pages/_app.js — global wrapper
+import '@/styles/globals.css';
+
+export default function App({ Component, pageProps }) {
+  return <Component {...pageProps} />;
+  // Component = the active page component
+  // pageProps = data passed from getServerSideProps / getStaticProps
+}
+```
+
+---
+
+## 230. What Is "File-based Routing"? And Why Is It Helpful?
+
+**What is this:** The core concept — every file in `pages/` automatically becomes a route, no router config needed.
+
+**Description:** In the Pages Router, the file system IS the router. A file at `pages/about.js` becomes `/about`. A file at `pages/blog/first-post.js` becomes `/blog/first-post`. No `<Route>` components, no `createBrowserRouter`, no config — just files.
+
+**Examples:**
+
+```
+pages/
+├── index.js          →  /
+├── about.js          →  /about
+├── blog/
+│   ├── index.js      →  /blog
+│   └── first-post.js →  /blog/first-post
+└── contact.js        →  /contact
+```
+
+```jsx
+// pages/about.js — automatically becomes the /about route
+export default function AboutPage() {
+  return (
+    <main>
+      <h1>About Us</h1>
+      <p>We build great software.</p>
+    </main>
+  );
+}
+```
+
+---
+
+## 231. Adding A First Page
+
+**What is this:** Creating the homepage by adding `pages/index.js`.
+
+**Description:** `pages/index.js` maps to the root route `/`. It exports a default React component — that's all that's required. No imports from NextJS are needed for a basic page.
+
+**Examples:**
+
+```jsx
+// pages/index.js → route: /
+export default function HomePage() {
+  return (
+    <main>
+      <h1>Welcome to My NextJS App!</h1>
+      <p>This is the homepage.</p>
+    </main>
+  );
+}
+```
+
+---
+
+## 232. Adding a Named / Static Route File
+
+**What is this:** Creating a route for a specific URL by adding a named file to `pages/`.
+
+**Description:** Any `.js` file in `pages/` (other than `_app.js`, `_document.js`) becomes a route. The filename (without extension) becomes the URL path segment.
+
+**Examples:**
+
+```jsx
+// pages/news.js → route: /news
+export default function NewsPage() {
+  return (
+    <main>
+      <h1>Latest News</h1>
+    </main>
+  );
+}
+```
+
+```jsx
+// pages/portfolio.js → route: /portfolio
+export default function PortfolioPage() {
+  return (
+    <main>
+      <h1>My Portfolio</h1>
+    </main>
+  );
+}
+```
+
+---
+
+## 233. Working with Nested Paths & Routes
+
+**What is this:** Creating sub-routes by nesting files inside folders within `pages/`.
+
+**Description:** To create `/blog/first-post`, create `pages/blog/first-post.js`. To create the `/blog` index route, create `pages/blog/index.js`. The folder name becomes the URL segment and the filename becomes the sub-segment.
+
+**Examples:**
+
+```
+pages/
+└── portfolio/
+    ├── index.js          →  /portfolio
+    └── my-first-project.js → /portfolio/my-first-project
+```
+
+```jsx
+// pages/portfolio/index.js → /portfolio
+export default function PortfolioPage() {
+  return (
+    <main>
+      <h1>My Portfolio</h1>
+      <ul>
+        <li>Project 1</li>
+        <li>Project 2</li>
+      </ul>
+    </main>
+  );
+}
+```
+
+```jsx
+// pages/portfolio/my-first-project.js → /portfolio/my-first-project
+export default function FirstProjectPage() {
+  return (
+    <main>
+      <h1>My First Project</h1>
+    </main>
+  );
+}
+```
+
+---
+
+## 234. Adding Dynamic Paths & Routes
+
+**What is this:** Creating routes with variable URL segments using the `[param]` filename convention.
+
+**Description:** Wrapping a filename (or folder name) in square brackets creates a dynamic route. The bracket content is the name of the parameter. `pages/portfolio/[projectId].js` matches `/portfolio/anything` and captures `anything` as `projectId`.
+
+**Examples:**
+
+```
+pages/
+└── portfolio/
+    ├── index.js          →  /portfolio
+    └── [projectId].js    →  /portfolio/:projectId
+```
+
+```jsx
+// pages/portfolio/[projectId].js
+// matches /portfolio/react-app, /portfolio/42, /portfolio/my-site, etc.
+export default function PortfolioProjectPage() {
+  return (
+    <main>
+      <h1>Project Detail</h1>
+    </main>
+  );
+}
+```
+
+---
+
+## 235. Extracting Dynamic Path Segment Data (Dynamic Routes)
+
+**What is this:** Reading the dynamic URL parameter inside a Page component using `useRouter`.
+
+**Description:** The `useRouter` hook from `next/router` gives access to the current route's `query` object, which contains all dynamic parameters. For `[projectId].js`, `router.query.projectId` holds the actual URL value.
+
+**Examples:**
+
+```jsx
+// pages/portfolio/[projectId].js
+import { useRouter } from 'next/router';
+
+export default function PortfolioProjectPage() {
+  const router = useRouter();
+  const { projectId } = router.query;
+  // visiting /portfolio/react-app → projectId = 'react-app'
+
+  return (
+    <main>
+      <h1>Project: {projectId}</h1>
+    </main>
+  );
+}
+```
+
+---
+
+## 236. Building Nested Dynamic Routes & Paths
+
+**What is this:** Combining nested folders with dynamic segments to create multi-level dynamic routes.
+
+**Description:** You can nest dynamic segments — a folder named `[clientId]` containing a file named `[projectId].js` creates a route like `/clients/:clientId/:projectId`. Both parameters are available in `router.query`.
+
+**Examples:**
+
+```
+pages/
+└── clients/
+    ├── index.js                   →  /clients
+    └── [clientId]/
+        ├── index.js               →  /clients/:clientId
+        └── [projectId].js         →  /clients/:clientId/:projectId
+```
+
+```jsx
+// pages/clients/[clientId]/[projectId].js
+import { useRouter } from 'next/router';
+
+export default function ClientProjectPage() {
+  const router = useRouter();
+  const { clientId, projectId } = router.query;
+  // /clients/john/react-app → { clientId: 'john', projectId: 'react-app' }
+
+  return (
+    <main>
+      <h1>Client: {clientId}</h1>
+      <h2>Project: {projectId}</h2>
+    </main>
+  );
+}
+```
+
+---
+
+## 237. Adding Catch-All Routes
+
+**What is this:** Using `[...slug].js` to match any number of path segments with a single route file.
+
+**Description:** A catch-all route `[...slug]` captures all remaining path segments into an array. `pages/blog/[...slug].js` matches `/blog/2024`, `/blog/2024/05`, `/blog/2024/05/hello-world`, etc. The captured segments are available as an array in `router.query.slug`.
+
+**Examples:**
+
+```
+pages/
+└── blog/
+    └── [...slug].js    → /blog/*, /blog/*/*, /blog/*/*/*, etc.
+```
+
+```jsx
+// pages/blog/[...slug].js
+import { useRouter } from 'next/router';
+
+export default function BlogPage() {
+  const router = useRouter();
+  const { slug } = router.query;
+  // /blog/2024/05/hello → slug = ['2024', '05', 'hello']
+  // /blog/2024          → slug = ['2024']
+
+  return (
+    <main>
+      <h1>Blog</h1>
+      <p>Segments: {slug ? slug.join(' / ') : 'loading...'}</p>
+    </main>
+  );
+}
+```
+
+```
+// Optional catch-all — also matches the base route
+// pages/blog/[[...slug]].js → matches /blog AND /blog/2024/05/hello
+// slug = undefined when visiting /blog with no segments
+```
+
+---
+
+## 238. Navigating with the "Link" Component
+
+**What is this:** Using `<Link>` from `next/link` for client-side navigation between pages.
+
+**Description:** Same concept as in the App Router — `<Link>` prevents full page reloads and keeps the SPA experience. In the Pages Router, `<Link>` works identically: import from `next/link`, pass an `href` string, wrap whatever content you like.
+
+**Examples:**
+
+```jsx
+// pages/index.js
+import Link from 'next/link';
+
+export default function HomePage() {
+  return (
+    <main>
+      <h1>Welcome</h1>
+      <nav>
+        <ul>
+          <li><Link href="/portfolio">Portfolio</Link></li>
+          <li><Link href="/clients">Clients</Link></li>
+          <li><Link href="/blog">Blog</Link></li>
+        </ul>
+      </nav>
+    </main>
+  );
+}
+```
+
+---
+
+## 239. Navigating To Dynamic Routes
+
+**What is this:** Building `href` strings for dynamic routes when linking to a specific parameter value.
+
+**Description:** For dynamic routes, construct the `href` string with the actual value interpolated. For `/portfolio/[projectId]`, the link's `href` would be `/portfolio/react-app` (the real value, not the bracket syntax).
+
+**Examples:**
+
+```jsx
+// pages/portfolio/index.js — linking to individual project pages
+import Link from 'next/link';
+
+const projects = [
+  { id: 'react-app', title: 'React App' },
+  { id: 'nextjs-site', title: 'NextJS Site' },
+];
+
+export default function PortfolioPage() {
+  return (
+    <main>
+      <h1>Portfolio</h1>
+      <ul>
+        {projects.map((project) => (
+          <li key={project.id}>
+            <Link href={`/portfolio/${project.id}`}>
+              {project.title}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
+}
+```
+
+---
+
+## 240. A Different Way Of Setting Link Hrefs
+
+**What is this:** Using an object as the `href` prop on `<Link>` instead of a plain string.
+
+**Description:** `<Link>` accepts an object with `pathname` and `query` fields. This is useful for dynamic routes — you pass the route pattern as `pathname` and the parameter values as `query`. NextJS builds the final URL for you. It's more explicit and easier to maintain than string interpolation.
+
+**Examples:**
+
+```jsx
+// String href — works, but manual string building
+<Link href={`/clients/${client.id}/${project.id}`}>
+  View Project
+</Link>
+
+// Object href — more explicit, NextJS builds the URL
+<Link
+  href={{
+    pathname: '/clients/[clientId]/[projectId]',
+    query: { clientId: client.id, projectId: project.id },
+  }}
+>
+  View Project
+</Link>
+// Both produce the same final URL: /clients/john/react-app
+```
+
+---
+
+## 241. Navigating Programmatically
+
+**What is this:** Using `router.push()` to navigate without a `<Link>` component — from event handlers or after async operations.
+
+**Description:** `useRouter` from `next/router` provides `push()`, `replace()`, and `back()` for imperative navigation. This is how you navigate after form submissions, button clicks that aren't anchor tags, or any non-link trigger.
+
+**Examples:**
+
+```jsx
+// pages/clients/index.js
+import { useRouter } from 'next/router';
+
+export default function ClientsPage() {
+  const router = useRouter();
+
+  function loadClientHandler(clientId) {
+    // navigate after some logic (e.g. after an API call)
+    router.push(`/clients/${clientId}`);
+
+    // Or with object form:
+    router.push({
+      pathname: '/clients/[clientId]',
+      query: { clientId },
+    });
+  }
+
+  return (
+    <main>
+      <h1>Clients</h1>
+      <button onClick={() => loadClientHandler('max')}>
+        Load Max's Portfolio
+      </button>
+    </main>
+  );
+}
+```
+
+```js
+router.push('/about');       // navigate, add to history
+router.replace('/about');    // navigate, replace current history entry
+router.back();               // go back one step
+```
+
+---
+
+## 242. Adding a Custom 404 Page
+
+**What is this:** Creating a custom 404 page by adding `pages/404.js`.
+
+**Description:** NextJS automatically serves `pages/404.js` for any URL that doesn't match a known route. This is a special reserved filename — you just create the file and export a component. No configuration needed.
+
+**Examples:**
+
+```jsx
+// pages/404.js — shown for any unmatched URL
+export default function NotFoundPage() {
+  return (
+    <main>
+      <h1>Page Not Found</h1>
+      <p>The page you are looking for does not exist.</p>
+    </main>
+  );
+}
+```
+
+---
+
+## 243. Module Summary
+
+**What is this:** A recap of everything covered in Section 11 — the Pages Router fundamentals.
+
+**Description:** This lesson consolidates the key concepts before moving on. No new code.
+
+**What was covered:**
+- The Pages Router uses the `pages/` directory — file paths map directly to URL routes
+- `pages/index.js` → `/`, `pages/about.js` → `/about`, `pages/blog/index.js` → `/blog`
+- Dynamic routes use bracket filenames: `[param].js` captures one segment, `[...slug].js` catches all
+- `useRouter` from `next/router` gives access to `router.query` for dynamic params
+- Nested dynamic routes: folder `[clientId]/` + file `[projectId].js` → `/clients/:clientId/:projectId`
+- `<Link href="...">` for client-side navigation (no full page reload)
+- Object-form `href={{ pathname, query }}` as a cleaner alternative to string interpolation
+- `router.push()` / `router.replace()` for programmatic navigation
+- `pages/404.js` for a custom not-found page
+- `pages/_app.js` wraps all pages (global layout, global styles)
